@@ -3,7 +3,8 @@ import json
 import re
 import time
 from selenium import webdriver
-from selenium.webdriver import FirefoxOptions
+from selenium.webdriver import ChromeOptions
+from selenium.webdriver.common.by import By
 
 import get_validate
 
@@ -13,45 +14,53 @@ find_msg = re.compile('msg":"(.*?)"')
 def get_cookies(number,passwd):
     '''获取cookie'''
     url = 'https://jwxk.jnu.edu.cn/xsxkapp/sys/xsxkapp/student/register.do?number=%s'%number
-    opts = FirefoxOptions()
-    opts.set_headless() 
-    wd = webdriver.Firefox(log_path=r'./webdriver.log',firefox_options=opts)
-    wd.get(url)
-    time.sleep(2)
+
+    Options = ChromeOptions()
+    # Options.add_argument('--headless')          # 浏览器无头模式，不显示，后台运行
+    driver = webdriver.Chrome(options=Options,executable_path='chromedriver.exe')
+    driver.get(url)
+
+    time.sleep(5)
+
     # 给验证码参数赋值
-    try:
-        validate_element = wd.find_element_by_class_name("yidun_input")
-    except Exception as e:
-        print("Try again")
-        time.sleep(2)
-        validate_element = wd.find_element_by_class_name("yidun_input")
-    validate = get_validate.get_validate()
-    # validate = input()
-    wd.execute_script("arguments[0].value = '%s';"%validate, validate_element)
-    print("over")
+    # try:
+    #     validate_element = driver.find_element(by=By.CLASS_NAME, value="yidun_input")
+    # except Exception as e:
+    #     print("Try again")
+    #     time.sleep(2)
+    #     validate_element = driver.find_element(by=By.CLASS_NAME, value="yidun_input")
+    # validate = get_validate.get_validate()
+    # # validate = input()
+    # driver.execute_script("arguments[0].value = '%s';"%validate, validate_element)
+    # print("over")
+
     # 键入账号密码
-    name_element = wd.find_element_by_id("un")
+    name_element = driver.find_element(by=By.ID, value="un")
     name_element.clear()
     name_element.send_keys(number)
-    passwd_element = wd.find_element_by_id("pd")
+    passwd_element = driver.find_element(by=By.ID, value="pd")
     passwd_element.clear()
     passwd_element.send_keys(passwd)
-    button_element = wd.find_element_by_class_name("login_box_landing_btn")
+    button_element = driver.find_element(by=By.CLASS_NAME, value="login_box_landing_btn")
     button_element.click()
     try:
-        fake_cookies = wd.get_cookies()
+        fake_cookies = driver.get_cookies()
     except Exception as e:
         print(e)
         time.sleep(2)
-        fake_cookies = wd.get_cookies()
+        fake_cookies = driver.get_cookies()
     cookies = 'Secure;Secure;'
     for item in fake_cookies:
         temp = item['name'] + "=" + item['value'] + ";"
         cookies += temp
-    wd.close()
-    print("获取cookie完毕")
-    print(cookies)
-    return cookies
+    driver.close()
+
+    if cookies[-7:] == 'Secure;':
+        print("获取cookie完毕：", cookies)
+        return cookies
+    else:
+        print("获取cookie失败：", cookies)
+        return None
 
 def get_token(number, cookies):
     '''获取token'''
@@ -75,11 +84,10 @@ def get_token(number, cookies):
     info = requests.get(url, headers = header)
     print(info.text)
     token = re.findall(find_token,info.text)
-    print(token)
-    print("获取token完毕")
+    print("获取token完毕：", token)
     return token[0]
 
-def class_info(number,cookie,token):
+def class_info(number,cookie,token,electiveBatchCode,queryContent,pageSize,pageNumber):
     '''获取选课信息'''
     #注意请求头中存在cookie和token两个验证身份的信息
     header = {
@@ -99,13 +107,13 @@ def class_info(number,cookie,token):
         "data":{
             "studentCode":number,
             "campus":"",
-            "electiveBatchCode":"41fe503a0c9241739610e623abe0096b",
+            "electiveBatchCode":electiveBatchCode,
             "isMajor":"1",
             "teachingClassType":"QXKC",
             "isMajor":"1",
-            "queryContent":"XGXKLBDM:12000010,"},
-            "pageSize":"14",
-            "pageNumber":"0",
+            "queryContent":queryContent},
+            "pageSize":pageSize,
+            "pageNumber":pageNumber,
             "order":""}
     data = 'querySetting=%s'%querySetting
 
@@ -117,7 +125,7 @@ def class_info(number,cookie,token):
     # print(info.text)
     return info.text
 
-def final_choice(number,cookie,token,teachingClassId):
+def final_choice(number,cookie,token,teachingClassId,electiveBatchCode):
     '''最终确认选课'''
     headers = {
         'accept-encoding': 'gzip, deflate, br',
@@ -136,7 +144,7 @@ def final_choice(number,cookie,token,teachingClassId):
         "data":{
             "operationType":"1",
             "studentCode":number,
-            "electiveBatchCode":"41fe503a0c9241739610e623abe0096b",
+            "electiveBatchCode":electiveBatchCode,
             "teachingClassId":teachingClassId,
             "isMajor":"1",
             "campus":"1",
@@ -147,36 +155,47 @@ def final_choice(number,cookie,token,teachingClassId):
     response = requests.post(url,headers=headers,data = data)
     return response.text
 
-def fliter(infos,num):
+def fliter(infos,num,electiveBatchCode,classList):
     '''过滤所需信息'''
     infos_json = json.dumps(infos)
     infos_str = json.loads(infos_json)
     infos_dict = json.loads(infos_str)
     if infos_dict["msg"] == "查询推荐选课成功":
         for dataList in infos_dict["dataList"]:
-            if dataList["courseNumber"] in ["01009443","01023037","01023001"]:
+            if dataList["courseNumber"] in classList:
                 print(dataList["courseName"]+f" nums:{num}")
                 if dataList["isFull"] != "1":
-                    res = final_choice(number,cookie,token,dataList["teachingClassID"])
+                    res = final_choice(number,cookie,token,dataList["teachingClassID"],electiveBatchCode)
                     return res
     else:
         print("课程不存在")
     
 if __name__ == "__main__":
-    number = "xxxxxx"
-    passwd = "xxxxxxxx"
+    number = "1234567890"       # 学号
+    passwd = "123456"           # 密码
+
+    classList = ["课程号1","课程号2"]                         # 需要抢的课程号，可以多个
+    electiveBatchCode = "cc36cc156d7a4ae1b0cac67202edbfff"   # 每轮次选课可能会改，自己手动改就行
+    queryContent = "不能用中文"                               # 搜索的关键词，尽量把需要的课程号涵盖进去，不支持中文
+    pageSize = 14                                            # 每页显示的条数，配合跳转页数让需要的课程在同一页
+    pageNumber = 0                                           # 跳转页数
+
+
     cookie = get_cookies(number,passwd)
+    if cookie == None:
+        print("请检查账号密码")
+        exit()
     token = get_token(number, cookie)
     start = time.time()
     num = 0
     while(True):
         num += 1
         try:
-            msg = class_info(number,cookie,token)
-            msg = fliter(msg,num)
+            msg = class_info(number,cookie,token,electiveBatchCode,queryContent,pageSize,pageNumber)
+            msg = fliter(msg,num,electiveBatchCode,classList)
             if msg != None:
                 print(msg)
-                input("输出enter继续：")
+                # input("输出enter继续：")
             time.sleep(10)
         except Exception as e:
             end = time.time()

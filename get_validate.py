@@ -5,7 +5,7 @@ from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver import FirefoxOptions
+from selenium.webdriver import ChromeOptions
 import numpy as np
 
 from io import BytesIO
@@ -26,10 +26,10 @@ class CrackSlider():
     def __init__(self):
         self.url = "file:///"+os.getcwd()+'/code.html'
         # 声明一个谷歌配置对象
-        self.opts = FirefoxOptions()
-        self.opts.set_headless() 
+        self.opts = ChromeOptions()
+        self.opts.add_argument('--headless')
 
-        self.driver = webdriver.Firefox(log_path=r'./webdriver.log',firefox_options=self.opts)
+        self.driver = webdriver.Chrome(options=self.opts)
         self.wait = WebDriverWait(self.driver, 20)
         # 伪造浏览器指纹，防止被检测出(参考资料：https://jishuin.proginn.com/p/763bfbd33b73)
         with open('./stealth.min.js') as f:
@@ -95,7 +95,7 @@ class CrackSlider():
         time.sleep(0.05)
         # ActionChains(self.driver).move_by_offset(xoffset=distance, yoffset=0).perform()
         ActionChains(self.driver).release().perform()
-        validate_element = self.driver.find_element_by_id('validate')
+        validate_element = self.driver.find_element(by=By.ID, value='validate')
         time.sleep(0.5)
         validate = validate_element.get_attribute('outerHTML')
         validate = re.findall(re.compile('>(.*?)</div'),validate)[0]
