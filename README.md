@@ -1,7 +1,10 @@
 # qiangke
 暨南大学抢课脚本（适用于第一阶段的专业课，第二第三阶段）
+
 **这是谷歌浏览器的版本，火狐浏览器版本看原仓库**
+
 ChromeDriver下载浏览器对应版本：https://googlechromelabs.github.io/chrome-for-testing/
+
 旧版：https://developer.chrome.com/docs/chromedriver/downloads
 
 # 使用方法
