@@ -175,8 +175,8 @@ if __name__ == "__main__":
     passwd = "123456"           # 密码
 
     classList = ["课程号1","课程号2"]                         # 需要抢的课程号，可以多个
-    electiveBatchCode = "cc36cc156d7a4ae1b0cac67202edbfff"   # 每轮次选课可能会改，自己手动改就行
-    queryContent = "不能用中文"                               # 搜索的关键词，尽量把需要的课程号涵盖进去，不支持中文
+    electiveBatchCode = "97adf8836a5e4da29db62f06cd7b406d"   # 每轮次选课可能会改，自己手动改就行
+    queryContent = "字母和数字（大小写敏感）"                  # 搜索的关键词，尽量把需要的课程号涵盖进去，只支持字母和数字
     pageSize = 14                                            # 每页显示的条数，配合跳转页数让需要的课程在同一页
     pageNumber = 0                                           # 跳转页数
 
