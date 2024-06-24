@@ -15,9 +15,9 @@ def get_cookies(number,passwd):
     '''获取cookie'''
     url = 'https://jwxk.jnu.edu.cn/xsxkapp/sys/xsxkapp/student/register.do?number=%s'%number
 
-    Options = ChromeOptions()
+    Options = ChromeOptions().add_argument(f'--webdriver-executable-path=chromedriver.exe')
     # Options.add_argument('--headless')          # 浏览器无头模式，不显示，后台运行
-    driver = webdriver.Chrome(options=Options,executable_path='chromedriver.exe')
+    driver = webdriver.Chrome(options=Options)
     driver.get(url)
 
     time.sleep(5)
